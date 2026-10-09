@@ -196,6 +196,60 @@ description: "Внешний ведущий ODM: D&D-игра через MCP с 
   метры и килограммы (не копируйте футы из SRD). Числа врагов — по настройке
   видимости.
 
+## Правила 5e: что считает сервер
+
+Числа SRD знает движок; сначала вызов, потом сцена. Ситуация → действие
+(схемы — в «Частых вызовах»):
+
+- **Сложность.** `difficulty` вместо выдуманного DC: `very_easy` 5, `easy` 10,
+  `moderate` 15, `hard` 20, `very_hard` 25, `nearly_impossible` 30. Обычная
+  задача для умелого героя — `easy`/`moderate`; точный `dc` — когда число
+  задано правилом (Сл. заклинания, пассивное значение).
+- **Преимущество.** Состояния, Dodge, Help, скрытность, укрытие и дальнюю
+  дистанцию сервер учитывает сам и сам сводит преимущество с помехой. В
+  `advantage` передавайте только то, чего он не видит: невидимая или
+  незамеченная цель, темнота без тёмного зрения, стрельба в упор при враге
+  рядом. Не дублируйте то, что уже в квитанции.
+- **Скрытое и внезапность.** Ловушка, тайная дверь, засада или ложь, которую
+  никто не ищет, — `check_notice` по пассивным значениям, без броска; активный
+  поиск — `request_roll` (Восприятие/Расследование). Тайный результат —
+  `visibility: "blind"|"self"|"dm"`. `surprised: "enemies"` в
+  `start_encounter` — только если отряд не замечен: до боя `group_check
+  {skill:"stealth"}` с `dc` = пассивное Восприятие врагов; `"party"` — только
+  если по `check_notice` засаду не заметил никто. Слово «засада» в заявке
+  внезапности не даёт.
+- **Урон героям.** Падение (`feet`: 3 м = 10 футов, 1d6 за каждые 10 футов),
+  ловушка, удушье, холод и жара — `apply_hazard`; прочий урон одному герою —
+  `apply_damage`; спасбросок от врага или заклинания одному — `cast_at_player`;
+  область (дыхание, огненный шар, обвал) — один `aoe_damage`. Состояние после
+  спасброска ставит сервер; `set_condition` — для состояний без спасброска
+  (связали спящего, отравили ужин).
+- **0 HP.** Герой без сознания и умирает, не труп: спасброски от смерти сервер
+  бросает сам, любое лечение поднимает, `stabilize` — успешная Медицина DC 10
+  или набор целителя (сервер проверяет). Смерть — только когда лист говорит
+  `dead`; мгновенную смерть от массивного урона считает сервер. Враг мёртв при
+  `dead:true` в квитанции.
+- **Состояния и эффекты.** Именованные состояния — `set_condition`/
+  `clear_condition` (врагу — `set_enemy_condition`) с `rounds` или
+  `saveAbility` для повторного спасброска. Числовой бафф, проклятие, зелье —
+  `set_effect`; заклинание-усиление — `cast_buff` (концентрацию ведёт сервер).
+  Реакция героя (Щит, Увёртливость, Режущие слова) — `use_reaction`.
+- **Отдых и время.** `take_rest {kind:"short"|"long"}` до описания
+  восстановления: короткий — час и кости хитов, длинный — восемь часов, не в
+  бою; второй длинный отдых в те же сутки ничего не даёт. Отдых и `travel`
+  сами двигают часы; `pass_time` — когда время идёт без них. Марш дольше
+  восьми часов — `travel {hours, pace}`: сервер бросает спасброски Телосложения
+  и ставит истощение.
+- **Разговор.** Важный NPC — `set_npc` при первой встрече; незнакомец с
+  неясным отношением — `npc_reaction` (2d6). Убедить, обмануть, запугать —
+  `social_check {approach}`: DC по отношению (дружелюбный 10, безразличный
+  15, враждебный 20), сдвиг не больше чем на шаг за разговор. Погоня, торг или
+  ритуал на несколько попыток — `start_scene` + `scene_check`.
+- **Добыча и опыт.** Золото за победу — `roll_treasure {cr}`, не цифра из
+  головы; покупка и продажа — `purchase`; общая награда — `party_award`.
+  Опыт за бой начисляется сам; за квест и переговоры — `award_xp` как за бой
+  той же сложности. Сломать дверь или сундук — `damage_object`.
+
 ## Глобальный раунд
 
 При `gameSettings.globalTurn.enabled` раундом владеет сервер.
@@ -234,8 +288,10 @@ description: "Внешний ведущий ODM: D&D-игра через MCP с 
 - `take_action` {characterId*, action*: dodge|dash|disengage|hide|help|grapple|shove, targetEnemyId, completeTurn}.
 - `enemy_attack` {enemyId*, targetCharacterId*, attack, targetCharacterIds, advantage}.
 - `end_turn` {characterId*}; `end_encounter` {outcome: victory|enemies_fled|party_fled|party_defeated|truce, reason}.
-- `request_roll` {characterId*, kind*: skill_check|saving_throw|ability_check, skill | ability, dc, reason};
-  `group_check` {skill | ability, dc, characterIds, reason}.
+- `request_roll` {characterId*, kind*: skill_check|saving_throw|ability_check|attack|damage|initiative|custom,
+  skill | ability, difficulty | dc, advantage, visibility: public|blind|self|dm, expression, against, reason};
+  `group_check` {skill | ability, difficulty | dc, characterIds, reason};
+  `check_notice` {sense: perception|insight|investigation, difficulty | dc, characterIds, reason}.
 - `request_player_input` {characterIds*, prompt}.
 - `send_whisper` {characterIds*, message*, replyToWhisperIds?} — личное объяснение игроку;
   `send_ooc` {message*} — общее сообщение всему столу, включая другие комнаты.
@@ -248,6 +304,21 @@ description: "Внешний ведущий ODM: D&D-игра через MCP с 
   `formHp`/`formAc` — только для отсутствующей в таблице формы с проверенным
   статблоком и допустимыми ограничениями уровня.
 - `update_story` {arc, chapterTitle, chapterSummary, chapterHighlights, closeChapter, scene, quests}; `complete_beat` {beat}.
+- `take_rest` {kind*: short|long, reason}; `stabilize` {characterId*}; `apply_damage` {characterId*, amount*, type, reason}.
+- `apply_hazard` {type*: falling|trap|generic|suffocation|drowning|extreme_cold|extreme_heat, characterIds*, feet,
+  severity: setback|dangerous|deadly, damage, saveAbility, dc, roundsWithoutAir, reason}.
+- `cast_at_player` {characterId*, saveAbility*, dc*, source, damage, damageType, halfOnSave, condition, rounds, casterEnemyId, spell};
+  `aoe_damage` {damage*, saveAbility*, dc*, type, halfOnSave, enemyIds, characterIds, area, casterId, spell, level}.
+- `set_condition` {characterId*, condition*, rounds | minutes | hours, saveAbility, saveDc}; `clear_condition` {characterId*, condition*};
+  `set_enemy_condition` {enemyId*, condition*, rounds, saveAbility, saveDc}; `use_reaction` {characterId*, feature*, targetCharacterId};
+  `set_effect` — схему берите из `catalog`.
+- `set_npc` {name*, attitude: hostile|indifferent|friendly, trait, location, goal}; `npc_reaction` {name*, modifier};
+  `social_check` {characterId*, npc*, approach*: persuade|deceive|intimidate}.
+- `roll_treasure` {cr*, characterIds, individual}; `purchase` {characterId*, item*, price, qty};
+  `party_award` {characterIds*, amount, delta, name, qty}; `damage_object` {material, size, damage, fragile}.
+- `travel` {hours*, pace: slow|normal|fast, destination}; `pass_time` {amount*, unit: minutes|hours|days|weeks};
+  `start_scene` {kind*: exploration|social|chase|ritual, title*, successesNeeded};
+  `scene_check` {characterId*, skill | ability, difficulty | dc, approach, endRound}.
 
 ## Частые отказы → что делать
 
