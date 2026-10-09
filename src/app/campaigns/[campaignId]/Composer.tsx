@@ -310,14 +310,14 @@ function ComposerInner({
     <details
       open={chatExpanded}
       onToggle={(event) => setChatExpanded(event.currentTarget.open)}
-      className="shrink-0 border-t border-stone-700/40 bg-stone-950/80"
+      className="max-h-[70%] min-h-0 overflow-y-auto border-t border-stone-700/40 bg-stone-950/80"
       data-tour="table-chat-toggle"
     >
       <summary className="flex min-h-11 cursor-pointer select-none list-none items-center justify-end gap-2 px-4 py-2 text-xs font-medium text-amber-200 hover:bg-stone-900/70 focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-amber-400 [&::-webkit-details-marker]:hidden">
         {chatExpanded ? copy.hideChat : copy.showChat}
         <ChevronDown aria-hidden="true" className={cn("size-4 shrink-0", !chatExpanded && "rotate-180")} />
       </summary>
-    <form onSubmit={handleSubmit} className="glass max-h-[75dvh] overflow-y-auto border-t border-stone-700/40 px-3 pb-3 pt-2.5">
+    <form onSubmit={handleSubmit} className="glass border-t border-stone-700/40 px-3 pt-2.5">
       <div className="mx-auto max-w-3xl sm:px-3">
         <div ref={noticesRef} data-collapsed={noticeCount > 1 && !noticesOpen} className="composer-notices">
         {pendingRolls.map((pending) => (
@@ -535,6 +535,11 @@ function ComposerInner({
             ) : null}
           </div>
         ) : null}
+      </div>
+      {/* The panel scrolls, the input never does: it stays docked above the keyboard and the tab bar. */}
+      <div className="glass-solid sticky bottom-0 z-10 -mx-3 px-3 pb-3">
+        <div className="mx-auto max-w-3xl sm:px-3">
+        {error ? <p className="mb-1.5 text-sm text-red-400">{error}</p> : null}
         {ownCombatTurn && kind === "do" ? null : <div
           data-tour="composer-input"
           className="texture-noise flex items-end gap-2 rounded-2xl border border-stone-700/70 bg-stone-950/90 p-2 shadow-elev-1 transition-[border-color,box-shadow] duration-200 focus-within:border-amber-400/60 focus-within:shadow-[0_0_0_3px_rgba(212,171,58,0.1),0_2px_12px_rgba(4,2,12,0.5)]"
@@ -571,7 +576,7 @@ function ComposerInner({
             {sending ? <Loader2 className="size-4 animate-spin" /> : <Send className="size-4" />}
           </button>
         </div>}
-        {error ? <p className="mt-1.5 text-sm text-red-400">{error}</p> : null}
+        </div>
       </div>
     </form>
     {preview !== null ? (
