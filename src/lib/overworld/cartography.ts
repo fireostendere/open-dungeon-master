@@ -51,26 +51,61 @@ type Place = { name: string; layoutDescription?: string };
 // no bare "дом", which also names a forester's hut.
 const URBAN = /улиц|переул|проспект|бульвар|площад(?!к)|квартал|слобод|предмест|рын(?:ок|к)|рыночн|базар|ярмарк|лавк|магазин|мастерск|кузниц|таверн|трактир|корчм|кабак|харчевн|постоял|гостиниц|пивн|квартир|особняк|ратуш|казарм|гильди|склад|набережн|городск|канализац|трущоб|\b(?:street|alley|avenue|boulevard|square|plaza|market|bazaar|district|quarter|ward|tavern|inn|pub|alehouse|shop|store|emporium|workshop|smithy|guild(?:hall)?|warehouse|town hall|city hall|barracks|sewers?|slums|apartment|townhouse|mansion)\b/iu;
 
-// Specific names win over generic types. An incidental forest in a town's
-// description must not change its symbol. Unknown names keep a neutral pin.
+// Rooms and parts of a building or a dungeon (a throne room, a cellar, a
+// gallery): they stand beside the place they open from and take its ground.
+const INTERIOR = /(?:^|\s)зал(?:а|е|ы|ов)?(?:\s|$)|комнат|коридор|подвал|погреб|чердак|кухн|спальн|кабинет|(?:^|\s)поко(?:и|ев|ях)|(?:^|\s)кель[яиюе]|сокровищниц|оружейн|тронн|лестниц|галере[яиюе]|прихож|гостин(?:ая|ой|ую)|опочивальн|кладов(?:ая|ой|ую)|\b(?:hall|room|chamber|corridor|cellar|basement|attic|kitchen|bedroom|study|armou?ry|treasury|vault|cell|gallery|courtyard|stair(?:s|case|well)?|foyer|parlou?r|pantry)\b/iu;
+
+// Specific names win over generic types, and the head of a name (its first
+// words, before "у", "возле", a dash or a comma) wins over the rest: «Лавка
+// у кладбища» is a shop, «Подвал замка» a room, «Лес у деревни» a forest. An
+// incidental forest in a town's description must not change its symbol.
+// Unknown names keep a neutral pin. Russian stems carry their own word edges
+// ((?:^|\s)…): \b only knows Latin letters.
 const LANDMARK_RULES: Array<[LandmarkAsset, RegExp]> = [
-  ["ruinedCastle", /(?:руин|разрушенн|abandoned|ruined).*(?:зам|крепост|castle|keep)|(?:зам|крепост|castle|keep).*(?:руин|разрушенн|ruin)/iu],
-  ["wizardTower", /(?:башн|tower).*(?:маг|волшеб|wizard|mage)|(?:маг|волшеб|wizard|mage).*(?:башн|tower)/iu],
-  ["dwarvenHold", /(?:дварф|дворф|гном|dwarv).*(?:город|крепост|цитадел|hold|city|fort)|(?:город|крепост|city|hold).*(?:дварф|гном|dwarv)/iu],
-  ["elvenCity", /(?:эльф|elven).*(?:город|city|поселен)|(?:город|city).*(?:эльф|elves)/iu],
-  ["portal", /портал|portal/iu], ["volcano", /вулкан(?:\s|$|[.!?,])|\bvolcano\b/iu], ["waterfall", /водопад|waterfall/iu],
-  ["bridge", /(?:^|\s)мост|\bbridge\b/iu], ["port", /пристан|гаван|(?:^|\s)порт(?:\s|$)|\b(?:port|harbou?r|wharf|dock)\b/iu],
-  ["mine", /шахт|рудник|\bmine\b/iu], ["cave", /пещер|\bcavern?\b|\bcave\b/iu], ["dungeon", /подземел|dungeon/iu],
-  ["graveyard", /кладбищ|гробниц|склеп|graveyard|cemetery|tomb|crypt/iu], ["pyramid", /пирамид|pyramid/iu],
-  ["ruins", /руин|ruins?/iu], ["castle", /замок|крепост|цитадел|\b(?:castle|fort|fortress|keep|citadel)\b/iu],
-  ["watchtower", /башн|tower/iu], ["monastery", /монастыр|monastery|abbey/iu], ["shrine", /святилищ|shrine/iu],
-  ["temple", /храм|temple/iu], ["camp", /лагер|стоянк|\bcamp\b/iu], ["village", /деревн|село(?:\s|$)|village|hamlet/iu],
-  ["town", /городок|пос[её]лок|\btown\b/iu], ["city", /город|\bcity\b/iu], ["town", URBAN],
+  ["ruinedCastle", /(?:руин|разрушенн|заброшенн|abandoned|ruined).*(?:зам|крепост|форт|castle|keep|fort)|(?:зам|крепост|castle|keep|fort).*(?:руин|разрушенн|ruin)/iu],
+  ["wizardTower", /(?:башн|tower).*(?:маг(?!аз)|волшеб|чароде|колдун|некромант|wizard|mage|sorcer|necromanc)|(?:маг(?!аз)|волшеб|чароде|колдун|некромант|wizard|mage|sorcer|necromanc).*(?:башн|tower)|обсерватори|observatory/iu],
+  ["dwarvenHold", /(?:дварф|дворф|гном|dwarv).*(?:город|крепост|цитадел|чертог|hold|city|fort|hall)|(?:город|крепост|чертог|city|hold|hall).*(?:дварф|гном|dwarv)/iu],
+  ["elvenCity", /(?:эльф|elven).*(?:город|city|поселен|чертог)|(?:город|city).*(?:эльф|elves)/iu],
 ];
+// The pair rules above read the whole name; these read its head first.
+const PAIR_RULES = LANDMARK_RULES.length;
+LANDMARK_RULES.push(
+  ["portal", /портал|телепорт|portal|teleport/iu], ["volcano", /вулкан(?:\s|$|[.!?,])|\bvolcano\b/iu],
+  ["waterfall", /водопад|каскад|waterfall|cascade/iu],
+  ["bridge", /(?:^|\s)мост|переправ|\b(?:bridge|crossing)\b/iu],
+  ["port", /пристан|гаван|(?:^|\s)порт(?:\s|$)|причал|верф|(?:^|\s)доки(?:\s|$)|\b(?:port|harbou?r|wharf|docks?|pier|shipyard)\b/iu],
+  ["mine", /шахт|рудник|(?:^|\s)копи(?:\s|$)|карьер|прииск|\b(?:mine|quarry)\b/iu],
+  ["cave", /пещер|грот|логов|берлог|\b(?:cavern|caverns|cave|caves|grotto|lair|den)\b/iu],
+  ["dungeon", /подземел|катакомб|лабиринт|темниц|каземат|\b(?:dungeon|catacombs?|labyrinth|maze|undercroft)\b/iu],
+  ["graveyard", /кладбищ|гробниц|склеп|погост|некропол|мавзоле|курган|могильник|усыпальниц|graveyard|cemetery|\b(?:tombs?|crypts?|necropolis|mausoleum|barrow|ossuary)\b/iu],
+  ["pyramid", /пирамид|зиккурат|pyramid|ziggurat/iu], ["ruins", /руин|развалин|ruins?/iu],
+  ["castle", /замок|крепост|цитадел|твердын|(?:^|\s)форт(?:\s|$|[.,!?])|острог|бастион|редут|донжон|гарнизон|\b(?:castle|fort|fortress|keep|citadel|stronghold|bastion|redoubt|garrison)\b/iu],
+  ["watchtower", /башн|маяк|вышк|дозорн|застав|кордон|аванпост|блокпост|сторожев|tower|lighthouse|\b(?:outposts?|watch ?posts?|checkpoint)\b/iu],
+  ["monastery", /монастыр|обител|аббатств|(?:^|\s)скит(?:\s|$)|приорат|monastery|abbey|priory|cloister|convent|hermitage/iu],
+  ["shrine", /святилищ|часовн|алтар|капищ|менгир|мегалит|дольмен|кромлех|каменн\S* круг|(?:^|\s)идол|обелиск|священн\S* (?:рощ|дуб|древ|камен|источник|родник)|shrine|chapel|altar|stone circle|standing stones?|menhir|dolmen|obelisk|\bidol\b/iu],
+  ["temple", /храм|собор|церк|костёл|костел|мечет|пагод|temple|cathedral|church|basilica|pagoda|mosque/iu],
+  ["camp", /лагер|стоянк|бивак|бивуак|табор|привал|(?:^|\s)стан(?:\s|$)|\b(?:camp|encampment|bivouac|campsite)\b/iu],
+  ["village", /деревн|село(?:\s|$)|сельц|хутор|ферм|мельниц|усадьб|станиц|выселк|заимк|хижин|избушк|поселени|village|hamlet|\b(?:farm|farmstead|homestead|mill|cottage|hut|settlement)\b/iu],
+  ["town", /городок|пос[её]лок|местечк|\b(?:town|borough)\b/iu],
+  // "городская стража" is a street-level place, not a whole city.
+  ["city", /город(?!ск)|столиц|\b(?:city|capital|metropolis)\b/iu], ["town", URBAN],
+);
+
+// The first words of a name, before a dash, a comma, a quoted name or a
+// "near/under/behind" phrase: the noun that says what the place is.
+const nameHead = (name: string) => name.split(/[—–,«"(]|\s-\s|\s(?:у|возле|около|близ|под|над|за|beside|near|by|under|below|above|behind)\s/iu)[0].trim().split(/\s+/).slice(0, 3).join(" ");
+const placeType = (place: Place) => place.layoutDescription?.match(/^(?:Тип места|Place type):\s*([^.!?]+)/iu)?.[1];
 
 function landmarkRule(place: Place): [LandmarkAsset, RegExp] | null {
-  const explicit = place.layoutDescription?.match(/^(?:Тип места|Place type):\s*([^.!?]+)/iu)?.[1];
+  const explicit = placeType(place);
   if (explicit) return LANDMARK_RULES.find(([, rule]) => rule.test(explicit)) ?? null;
+  const pair = LANDMARK_RULES.slice(0, PAIR_RULES).find(([, rule]) => rule.test(place.name));
+  if (pair) return pair;
+  const head = nameHead(place.name);
+  const headed = LANDMARK_RULES.find(([, rule]) => rule.test(head));
+  if (headed) return headed;
+  // A room, or a natural place named for its neighbour, is not that neighbour.
+  if (INTERIOR.test(head) || ENVIRONMENT_RULES.some(([rule]) => rule.test(head))) return null;
   const named = LANDMARK_RULES.find(([, rule]) => rule.test(place.name));
   if (named) return named;
   const opening = (place.layoutDescription ?? "").split(/[.!?;,]|\s(?:у|возле|около|beside|near|by)\s/iu)[0].trim();
@@ -89,44 +124,70 @@ export function urbanPlace(place: Place): boolean {
   return landmarkRule(place)?.[1] === URBAN;
 }
 
-export type PlaceEnvironment = { ground: OverworldTile; material: TerrainMaterial; radius: number; water?: "coast" | "lake" | "river" | "ice" | "lava" };
+// A room or a part of a building: no miniature and no ground of its own.
+export function interiorPlace(place: Place): boolean {
+  const explicit = placeType(place);
+  return !landmarkRule(place) && INTERIOR.test(explicit ?? nameHead(place.name));
+}
+
+export type PlaceEnvironment = { ground: OverworldTile; material: TerrainMaterial; radius: number; water?: "coast" | "lake" | "river" | "ice" | "lava" | "island" | "oasis" };
 const ENVIRONMENT_RULES: Array<[RegExp, PlaceEnvironment]> = [
   [/(?:лавов|lava).*(?:озер|озёр|lake)|(?:озер|озёр|lake).*лав|озеро лавы/iu, { ground: "h", material: "lava", radius: 6, water: "lava" }],
   [/вулкан|лавов|озеро лавы|volcan|lava/iu, { ground: "m", material: "volcanic", radius: 7, water: "lava" }],
   [/ледник|ледян(?:ое|ая|ые)|зам[её]рз|glacier|frozen|ice lake/iu, { ground: "w", material: "ice", radius: 6, water: "ice" }],
   [/снеж|snow/iu, { ground: "m", material: "snow", radius: 6 }],
+  // Land in water, before the lake and forest rules: «Лесной остров» is an island.
+  [/(?:^|\s)остров|\b(?:island|isle|islet)\b/iu, { ground: "p", material: "plains", radius: 5, water: "island" }],
+  [/пляж|\bbeach\b/iu, { ground: "p", material: "desert", radius: 5, water: "coast" }],
+  [/(?:^|\s)берег|побереж|бухт|залив|лагун|фьорд|\b(?:coast|shore|bay|cove|lagoon|fjord)\b/iu, { ground: "p", material: "plains", radius: 5, water: "coast" }],
+  [/оазис|oasis/iu, { ground: "p", material: "desert", radius: 6, water: "oasis" }],
   [/тундр|tundra/iu, { ground: "p", material: "tundra", radius: 7 }],
-  [/пустын|дюн|desert|dunes/iu, { ground: "p", material: "desert", radius: 7 }],
+  [/пустын|дюн|пески|песчан|бархан|солончак|desert|dunes|\bsands\b|salt flats?/iu, { ground: "p", material: "desert", radius: 7 }],
+  [/пустош|\b(?:wasteland|badlands?|heath|moor)\b/iu, { ground: "p", material: "tundra", radius: 6 }],
   [/каньон|ущель|canyon|gorge/iu, { ground: "h", material: "canyon", radius: 6 }],
   [/джунгл|тропическ|jungle|tropical forest/iu, { ground: "f", material: "jungle", radius: 7 }],
   [/(?:м[её]ртв|выжжен|dead|burnt).*(?:лес|рощ|forest|wood)/iu, { ground: "f", material: "deadwood", radius: 6 }],
   [/(?:зачарован|волшебн|enchanted|magical).*(?:лес|рощ|forest|wood)/iu, { ground: "f", material: "enchanted", radius: 6 }],
   [/осенн|autumn/iu, { ground: "f", material: "autumn", radius: 6 }],
-  [/листвен|дубов|бер[её]з|broadleaf|deciduous|oak grove/iu, { ground: "f", material: "broadleaf", radius: 6 }],
-  [/болот|топь|трясин|swamp|marsh|bog/iu, { ground: "s", material: "swamp", radius: 6 }],
-  [/лес|рощ|forest|woods?|grove/iu, { ground: "f", material: "forest", radius: 6 }],
-  [/перевал|хребет|вершин|(?:^|\s)гор(?:а|ы|ах|ный)|mountain|\bpass\b|\bpeak\b/iu, { ground: "m", material: "mountains", radius: 6 }],
+  [/листвен|дубов|дубрав|бер[её]з|broadleaf|deciduous|oak grove/iu, { ground: "f", material: "broadleaf", radius: 6 }],
+  [/болот|топь|топи|трясин|мангр|swamp|marsh|bog|\b(?:fen|mire|mangroves?)\b/iu, { ground: "s", material: "swamp", radius: 6 }],
+  [/лес|рощ|тайг|(?:^|\s)бор(?:\s|$|[.,])|чащ|дебр|forest|woods?|grove|taiga|thicket/iu, { ground: "f", material: "forest", radius: 6 }],
+  [/перевал|хребет|вершин|(?:^|\s)гор(?:а|ы|ах|ный)|скал(?:а|ы|ист)|ут[ёе]с|обрыв|кряж|(?:^|\s)пик(?:\s|$)|mountain|\bpass\b|\bpeak\b|\b(?:cliffs?|crags?|ridge|summit|highlands?)\b/iu, { ground: "m", material: "mountains", radius: 6 }],
   [/рек[аи]|river|stream/iu, { ground: "w", material: "water", radius: 5, water: "river" }],
   [/мелковод|shallows/iu, { ground: "w", material: "shallows", radius: 5, water: "lake" }],
   [/озер|озёр|lake|море|морск|океан|sea\b|ocean/iu, { ground: "w", material: "water", radius: 6, water: "lake" }],
-  [/холм|hill/iu, { ground: "h", material: "hills", radius: 5 }],
-  [/долин|равнин|луг|valley|plains?|meadow/iu, { ground: "p", material: "plains", radius: 5 }],
+  [/холм|плато|предгор|сопк|hill|\b(?:plateau|foothills?|downs)\b/iu, { ground: "h", material: "hills", radius: 5 }],
+  [/долин|равнин|луг|степ|(?:^|\s)пол[ея](?:\s|$)|пашн|(?:^|\s)нив[аы]|прери|саванн|valley|plains?|meadow|\b(?:steppe|fields?|prairie|grassland|farmland|savann?ah?)\b/iu, { ground: "p", material: "plains", radius: 5 }],
 ];
 
 // The ground of a place in town; wide enough that neighbouring streets and
 // inns merge into one settlement instead of clearings in a forest.
 const TOWN_GROUND: PlaceEnvironment = { ground: "p", material: "plains", radius: 4 };
 
+// The cleared ground around a settlement or a building, sized to it, when
+// nothing names the land around it.
+const SITE_GROUND: Partial<Record<LandmarkAsset, PlaceEnvironment>> = {
+  city: { ground: "p", material: "plains", radius: 5 }, town: { ground: "p", material: "plains", radius: 3.5 },
+  elvenCity: { ground: "f", material: "enchanted", radius: 5 }, pyramid: { ground: "p", material: "desert", radius: 4 },
+  camp: { ground: "p", material: "plains", radius: 2 },
+  cave: { ground: "h", material: "hills", radius: 3 }, mine: { ground: "h", material: "hills", radius: 3 }, dwarvenHold: { ground: "h", material: "hills", radius: 3 },
+  castle: { ground: "h", material: "hills", radius: 3 }, ruinedCastle: { ground: "h", material: "hills", radius: 3 },
+  watchtower: { ground: "h", material: "hills", radius: 3 }, wizardTower: { ground: "h", material: "hills", radius: 3 },
+};
+
 export function environmentForLocation(place: Place): PlaceEnvironment | null {
   const landmark = landmarkForLocation(place);
   const urban = urbanPlace(place);
-  const nameRule = ENVIRONMENT_RULES.find(([rule]) => rule.test(place.name));
+  const head = nameHead(place.name);
+  const nameRule = ENVIRONMENT_RULES.find(([rule]) => rule.test(head)) ?? ENVIRONMENT_RULES.find(([rule]) => rule.test(place.name));
   const leading = (place.layoutDescription ?? "").split(/[.!?;]/u).slice(0, 2).join(". ");
   const specified = place.layoutDescription?.match(/(?:^|[.!?])\s*(?:Окружение|Environment):\s*([^.!?]+)/iu)?.[1];
-  // A street's description that mentions the forest beyond the walls does
-  // not move the street into it: in town only a stated environment counts.
+  // In town and indoors only a stated environment counts: «Лесная улица» is a
+  // street name, and a street's description that mentions the forest beyond
+  // the walls does not move the street into it.
+  const indoors = urban || interiorPlace(place);
   const explicit = (specified ? ENVIRONMENT_RULES.find(([rule]) => rule.test(specified))?.[1] : undefined)
-    ?? nameRule?.[1] ?? (urban ? undefined : ENVIRONMENT_RULES.find(([rule]) => rule.test(leading))?.[1]);
+    ?? (indoors ? undefined : nameRule?.[1] ?? ENVIRONMENT_RULES.find(([rule]) => rule.test(leading))?.[1]);
   if (landmark === "port" || landmark === "bridge" || landmark === "waterfall") {
     const material = !explicit || ["water", "ice", "shallows"].includes(explicit.material) ? "plains" : explicit.material === "lava" ? "volcanic" : explicit.material;
     return { ground: landmark === "waterfall" ? "h" : "p", material, radius: 4,
@@ -142,9 +203,7 @@ export function environmentForLocation(place: Place): PlaceEnvironment | null {
   }
   if (!landmark || landmark === "portal") return null;
   if (urban) return TOWN_GROUND;
-  if (["cave", "mine", "dwarvenHold"].includes(landmark)) return { ground: "h", material: "hills", radius: 3 };
-  if (["castle", "ruinedCastle", "watchtower", "wizardTower"].includes(landmark)) return { ground: "h", material: "hills", radius: 3 };
-  return { ground: "p", material: "plains", radius: 2.5 };
+  return SITE_GROUND[landmark] ?? { ground: "p", material: "plains", radius: 2.5 };
 }
 
 // Native sprite-sheet coordinates. No generated artwork is duplicated to
@@ -154,18 +213,29 @@ export function landmarkSprite(asset: LandmarkAsset) {
   return { backgroundImage: `url('${LANDMARK_SHEETS[sheet]}')`, backgroundSize: "400% 300%", backgroundPosition: `${cell % 4 / 3 * 100}% ${Math.floor(cell / 4) / 2 * 100}%` };
 }
 
-// The terrain each place asks for. A place with no type of its own that
-// connects straight to a place in town (an inn named for its owner, off the
-// main square) stands in that town too. One hop only, so a road out of town
-// keeps the region's own ground; it takes the ground, never the miniature.
+// The terrain each place asks for. A room takes the ground of the place it
+// opens from (a castle's throne room stands on the castle's hill). A place
+// with no type of its own that connects straight to a place in town (an inn
+// named for its owner, off the main square) stands in that town too. One hop
+// only, so a road out of town keeps the region's own ground; it takes the
+// ground, never the miniature.
 export function placeEnvironments(places: Array<Place & { id: string; connections?: string[] }>): Map<string, PlaceEnvironment | null> {
   const key = (name: string) => name.trim().toLowerCase();
+  const own = new Map(places.map((place) => [place.id, environmentForLocation(place)]));
   const town = places.filter(urbanPlace);
   const townNames = new Set(town.map((place) => key(place.name)));
   const linkedFromTown = new Set(town.flatMap((place) => (place.connections ?? []).map(key)));
+  const neighbours = (place: Place & { connections?: string[] }) => {
+    const links = new Set((place.connections ?? []).map(key));
+    return places.filter((other) => links.has(key(other.name)) || (other.connections ?? []).some((name) => key(name) === key(place.name)));
+  };
   return new Map(places.map((place) => {
-    const own = environmentForLocation(place);
-    if (own || landmarkForLocation(place)) return [place.id, own];
+    const env = own.get(place.id) ?? null;
+    if (env || landmarkForLocation(place)) return [place.id, env];
+    if (interiorPlace(place)) {
+      const parent = neighbours(place).find((other) => own.get(other.id));
+      if (parent) return [place.id, own.get(parent.id)!];
+    }
     const beside = linkedFromTown.has(key(place.name)) || (place.connections ?? []).some((name) => townNames.has(key(name)));
     return [place.id, beside ? TOWN_GROUND : null];
   }));
@@ -194,6 +264,39 @@ export function atlasTowns(places: Array<Place & { id: string; anchor: XY | null
       size: Math.min(16, Math.max(7, extent + 5)),
     };
   });
+}
+
+// How many tiles a place's miniature covers on the map: a city spreads, a
+// shrine is a speck. Crowded places shrink to about one and a half times the
+// distance to their nearest neighbour, never below three tiles.
+const ART_TILES: Record<LandmarkAsset, number> = {
+  city: 6.5, elvenCity: 6.5, dwarvenHold: 5.5, volcano: 5.5, town: 5, castle: 5, ruinedCastle: 5, port: 5, pyramid: 5,
+  monastery: 4.5, temple: 4.5, village: 4, wizardTower: 4, ruins: 4, waterfall: 4,
+  watchtower: 3.5, graveyard: 3.5, shrine: 3.5, camp: 3.5, cave: 3.5, mine: 3.5, dungeon: 3.5, bridge: 3.5, portal: 3.5,
+};
+
+export type AtlasArt = { key: string; asset: LandmarkAsset; ids: string[]; x: number; y: number; size: number; visited: boolean };
+
+// Every typed place drawn on the map as its miniature, under its pin: the
+// map shows the villages, towns, outposts and temples the heroes found. A
+// town's streets and inns share one settlement miniature. Sorted top to
+// bottom so nearer miniatures overlap farther ones.
+export function atlasArt(places: Array<Place & { id: string; anchor: XY | null; connections?: string[]; visited?: boolean }>): AtlasArt[] {
+  const visited = (ids: string[]) => ids.some((id) => places.find((place) => place.id === id)?.visited !== false);
+  const towns = atlasTowns(places);
+  const grouped = new Set(towns.flatMap((town) => town.ids));
+  const art: AtlasArt[] = towns.map((town) => ({ key: `town:${town.ids.join(",")}`, asset: town.ids.length >= 5 ? "city" : "town",
+    ids: town.ids, x: town.x, y: town.y, size: town.size, visited: visited(town.ids) }));
+  const anchors = places.flatMap((place) => place.anchor ? [{ id: place.id, ...place.anchor }] : []);
+  for (const place of places) {
+    const asset = place.anchor && !grouped.has(place.id) ? landmarkForLocation(place) : null;
+    if (!asset || !place.anchor) continue;
+    const { x, y } = place.anchor;
+    const nearest = Math.min(Infinity, ...anchors.filter((other) => other.id !== place.id).map((other) => Math.hypot(other.x - x, other.y - y)));
+    const size = Math.min(urbanPlace(place) ? 4 : ART_TILES[asset], Math.max(3, nearest * 1.5));
+    art.push({ key: place.id, asset, ids: [place.id], x, y, size, visited: visited([place.id]) });
+  }
+  return art.sort((a, b) => a.y - b.y || a.x - b.x);
 }
 
 // A scoped, deterministic cartographic projection, not a rules-engine
@@ -242,6 +345,15 @@ export function atlasTerrain(map: { seed: number; width: number; height: number;
         } else if (env.water === "river") {
           ground = Math.abs(dx) <= 1 && !(env.ground !== "w" && dx === 0 && dy === 0) ? "w" : "p";
           material = ground === "w" ? "water" : env.material;
+        } else if (env.water === "island") {
+          // Dry land in the middle, open water all round it.
+          const dry = d < 0.6;
+          ground = dry ? env.ground : "w";
+          material = dry ? env.material : "water";
+        } else if (env.water === "oasis") {
+          // A pool, a ring of palms, then the desert.
+          ground = d < 0.22 ? "w" : d < 0.45 ? "f" : env.ground;
+          material = d < 0.22 ? "shallows" : d < 0.45 ? "jungle" : env.material;
         } else if (env.water === "lake" || env.water === "ice") {
           const drySite = env.ground !== "w" && Math.hypot(dx, dy) < 1.4;
           ground = drySite ? env.ground : "w";

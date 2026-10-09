@@ -18,7 +18,7 @@ const { createSheetSchema } = await import("../src/lib/schemas/sheet.ts");
 const { upsertCurrentLocation, insertKnownLocation } = await import("../src/lib/db/locations.ts");
 const { getOverworld, overworldView, regenerateOverworld, setOverworldAnchor, setOverworldPins, setOverworldNotes, setOverworldLabels } = await import("../src/lib/db/overworld.ts");
 const { atlasQuests, atlasRoute, questId, locationKind, constrainAtlasView, layoutAtlasMarkers } = await import("../src/lib/overworld/atlas.ts");
-const { atlasTerrain, atlasTowns, environmentForLocation, landmarkForLocation, landmarkSprite, urbanPlace, LANDMARK_ASSETS, LANDMARK_NAMES, TERRAIN_NAMES, TERRAIN_ASSETS, materialAt } = await import("../src/lib/overworld/cartography.ts");
+const { atlasArt, atlasTerrain, atlasTowns, environmentForLocation, interiorPlace, landmarkForLocation, landmarkSprite, placeEnvironments, urbanPlace, LANDMARK_ASSETS, LANDMARK_NAMES, TERRAIN_NAMES, TERRAIN_ASSETS, materialAt } = await import("../src/lib/overworld/cartography.ts");
 const { placeAnchor } = await import("../src/lib/overworld/logic.ts");
 const { runSpatialCommand, spatialContext, spatialStore } = await import("../src/lib/spatial/service.ts");
 const { executeMcpNarratorControl } = await import("../src/lib/mcp-narrator-control.ts");
@@ -112,6 +112,55 @@ try {
   assert.ok(Math.max(Math.abs(nextDoor.x - 10), Math.abs(nextDoor.y - 16)) <= 3, "a new street stands beside its square, not out in the forest");
   const besideTown = placeAnchor({ ...woods, name: "Дом вдовы Кравец", connected: { x: 10, y: 16 }, connectedInTown: true, existing: townAnchors });
   assert.ok(Math.max(Math.abs(besideTown.x - 10), Math.abs(besideTown.y - 16)) <= 3, "an untyped place off the square is in town too");
+  // Whatever the heroes find gets a fitting miniature: settlements, outposts,
+  // temples, lairs, in Russian and English, read from the head of the name.
+  for (const [name, expected] of [
+    ["Застава на тракте", "watchtower"], ["Аванпост Северный", "watchtower"], ["Кордон лесника", "watchtower"], ["Маяк", "watchtower"],
+    ["Форт Стальной", "castle"], ["Острог", "castle"], ["Посёлок Сухой Лог", "town"], ["Хутор Глушь", "village"],
+    ["Мельница у реки", "village"], ["Часовня", "shrine"], ["Каменный круг", "shrine"], ["Собор Святого Луки", "temple"], ["Церковь", "temple"],
+    ["Аббатство Святой Ирмы", "monastery"], ["Погост", "graveyard"], ["Курган вождя", "graveyard"], ["Логово волков", "cave"],
+    ["Катакомбы", "dungeon"], ["Причал", "port"], ["Переправа", "bridge"], ["Зиккурат", "pyramid"], ["Обсерватория", "wizardTower"],
+    ["Лагерь разбойников", "camp"], ["Столица", "city"], ["Казармы городской стражи", "town"], ["Лавка у кладбища", "town"],
+    ["Northern Outpost", "watchtower"], ["Old Farmstead", "village"], ["Abbey of Dawn", "monastery"], ["Saint Mary's Cathedral", "temple"],
+    ["Forest Chapel", "shrine"], ["The Catacombs", "dungeon"], ["Granite Quarry", "mine"], ["Wolf Lair", "cave"],
+    ["Фортуна", null], ["Лес у деревни", null], ["Подвал замка", null], ["Тронный зал", null],
+  ]) assert.equal(landmarkForLocation({ name }), expected, name);
+  assert.equal(environmentForLocation({ name: "Лес у деревни" }).material, "forest", "a forest named for its village is a forest");
+  assert.ok(interiorPlace({ name: "Подвал замка" }) && interiorPlace({ name: "Тронный зал" }) && !interiorPlace({ name: "Замок Чёрной Розы" }));
+  assert.deepEqual(environmentForLocation({ name: "Лесная улица" }), { ground: "p", material: "plains", radius: 4 }, "a street name is not a forest");
+  for (const [name, material, water] of [["Остров Чаек", "plains", "island"], ["Песчаный пляж", "desert", "coast"], ["Оазис Звёздный", "desert", "oasis"],
+    ["Сосновый бор", "forest", undefined], ["Степь", "plains", undefined], ["Утёс Ветров", "mountains", undefined], ["Пустошь", "tundra", undefined]]) {
+    const env = environmentForLocation({ name });
+    assert.equal(env.material, material, name);
+    assert.equal(env.water, water, name);
+  }
+  assert.equal(environmentForLocation({ name: "Столица" }).radius, 5, "a city clears more ground than a village");
+  assert.equal(environmentForLocation({ name: "Посёлок Сухой Лог" }).radius, 3.5);
+  assert.equal(environmentForLocation({ name: "Эльфийский город" }).material, "enchanted");
+  const isles = atlasTerrain(woods, [{ id: "isle", name: "Остров Чаек", anchor: { x: 20, y: 16 } }, { id: "oasis", name: "Оазис Звёздный", anchor: { x: 8, y: 24 } }]);
+  const isleTile = (x, y) => isles.terrain[y * woods.width + x];
+  assert.equal(isleTile(20, 16), "p");
+  assert.equal(isleTile(24, 16), "w", "open water round an island");
+  assert.equal(materialAt(isles.materialGrid, 24 * woods.width + 8), "shallows", "an oasis has its pool");
+  assert.equal(materialAt(isles.materialGrid, 24 * woods.width + 10), "jungle", "and a ring of palms");
+  assert.equal(materialAt(isles.materialGrid, 24 * woods.width + 12), "desert");
+  const keep = [{ id: "keep", name: "Замок Чёрной Розы", anchor: { x: 20, y: 10 }, connections: ["Тронный зал"] },
+    { id: "throne", name: "Тронный зал", anchor: { x: 22, y: 11 }, connections: [] }];
+  assert.deepEqual(placeEnvironments(keep).get("throne"), placeEnvironments(keep).get("keep"), "a room stands on its castle's ground");
+  assert.equal(atlasTerrain(woods, keep).terrain[11 * woods.width + 22], "h");
+  const armoury = placeAnchor({ ...woods, name: "Оружейная", connected: { x: 20, y: 10 }, existing: [{ x: 20, y: 10 }] });
+  assert.ok(Math.max(Math.abs(armoury.x - 20), Math.abs(armoury.y - 10)) <= 3, "a room is placed beside the place it opens from");
+  const art = atlasArt([...townPlaces, ...keep, { id: "hamlet", name: "Деревня Ивняки", anchor: { x: 30, y: 26 }, visited: false },
+    { id: "capital", name: "Столица", anchor: { x: 36, y: 4 } }, { id: "camp", name: "Лагерь", anchor: { x: 36, y: 7 } }]);
+  const byKey = new Map(art.map((entry) => [entry.ids.join(","), entry]));
+  assert.equal(byKey.get("inn,square,street").asset, "town", "a town's streets share one miniature");
+  assert.equal(byKey.get("keep").asset, "castle");
+  assert.equal(byKey.has("throne"), false, "a room has no miniature of its own");
+  assert.equal(byKey.get("hamlet").visited, false, "an unexplored place is drawn faded");
+  assert.equal(byKey.get("hamlet").size, 4);
+  assert.equal(byKey.get("capital").size, 4.5, "a crowded city shrinks to its neighbour's distance");
+  assert.equal(byKey.get("far").asset, "town", "a lone market square keeps a small town miniature");
+  assert.deepEqual(art.map((entry) => entry.y), [...art.map((entry) => entry.y)].sort((a, b) => a - b), "nearer miniatures overlap farther ones");
   for (const viewport of [{ width: 350, height: 420 }, { width: 950, height: 680 }]) {
     const map = { width: 1536, height: 1152 };
     const limited = constrainAtlasView({ x: 1e6, y: -1e6, zoom: 0.0001 }, viewport, map);

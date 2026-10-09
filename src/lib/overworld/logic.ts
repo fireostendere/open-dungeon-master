@@ -3,7 +3,7 @@
 // and deterministic anchor placement for locations. No DB access and no
 // "@/" imports so scripts/test-overworld-generate.mjs can load it directly;
 // the impure rim is src/lib/db/overworld.ts.
-import { environmentForLocation, urbanPlace } from "./cartography.ts";
+import { environmentForLocation, interiorPlace, urbanPlace } from "./cartography.ts";
 
 // Sized for long campaigns: anchors hop 4-7 tiles apart, so this grid
 // comfortably holds a couple hundred discovered locations before crowding.
@@ -262,8 +262,9 @@ export function placeAnchor(input: {
   const rng = mulberry32(hash);
   const environment = environmentForLocation(input);
   // Streets, squares and inns of one settlement stand next to each other,
-  // whatever biome is under them: the atlas draws the town's ground.
-  const inTown = urbanPlace(input) || Boolean(input.connectedInTown && !environment);
+  // whatever biome is under them: the atlas draws the town's ground. A room
+  // stands beside the place it opens from and takes that place's ground.
+  const inTown = urbanPlace(input) || interiorPlace(input) || Boolean(input.connectedInTown && !environment);
   let start: XY;
   if (connected) {
     const angle = rng() * Math.PI * 2;
