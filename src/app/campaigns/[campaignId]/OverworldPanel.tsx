@@ -40,7 +40,7 @@ import { useOverworldView } from "@/app/campaigns/[campaignId]/useOverworldView"
 import { useI18n } from "@/lib/i18n/context";
 import { localeText } from "@/lib/i18n/locale-text";
 import { atlasQuests, atlasRoute, isQuestPin, layoutAtlasMarkers, locationKind } from "@/lib/overworld/atlas";
-import { atlasTerrain, atlasTowns, landmarkForLocation, landmarkSprite, materialAt, type TerrainMaterial } from "@/lib/overworld/cartography";
+import { atlasArt, atlasTerrain, landmarkSprite, materialAt, type TerrainMaterial } from "@/lib/overworld/cartography";
 import { cachedRelief, loadAtlasMaterials, slowMapConnection, storeRelief } from "@/lib/overworld/loading";
 import styles from "./worldAtlas.module.css";
 
@@ -522,10 +522,10 @@ export function OverworldPanel({
       priority: location.isCurrent ? 1000 : partyCount ? 800 : activeQuest?.locationId === location.id ? 600 : chosen?.id === location.id ? 550 : location.visited ? 200 : 100 };
   }), canvasSize.width, canvasSize.height, detailed, labelBounds);
   const partyLocation = current ?? data?.locations.find(location => location.id === originId);
-  // One miniature per settlement under its streets, squares and inns; their
-  // own pins then carry a plain house icon instead of a second miniature.
-  const towns = useMemo(() => data ? atlasTowns(data.locations) : [], [data]);
-  const inTown = useMemo(() => new Set(towns.flatMap(town => town.ids)), [towns]);
+  // The map draws each typed place as its miniature (one per settlement for
+  // a town's streets and inns); the pins over them carry a plain icon.
+  const arts = useMemo(() => data ? atlasArt(data.locations) : [], [data]);
+  const inTown = useMemo(() => new Set(arts.filter(art => art.ids.length > 1).flatMap(art => art.ids)), [arts]);
 
   function showParty() {
     setFollowParty(true);
@@ -582,21 +582,20 @@ export function OverworldPanel({
             {!lowPoly ? <div className={styles.paper} aria-hidden="true" /> : null}
             <div className={styles.mist} aria-hidden="true" />
             <div className={styles.vignette} aria-hidden="true" />
+            {!lowPoly ? <div className={styles.artLayer} aria-hidden="true">{arts.map(art => {
+              const at = point(art), size = art.size * TILE * view.zoom;
+              return <span key={art.key} className={cn(styles.mapArt, !art.visited && styles.unexplored)}
+                style={{ left: at.x - size / 2, top: at.y - size / 2, width: size, height: size, ...landmarkSprite(art.asset) }} />;
+            })}</div> : null}
             {routePoints.length > 1 ? <svg className={styles.route} aria-hidden="true"><polyline points={routePoints.map(at => `${at.x},${at.y}`).join(" ")} /></svg> : null}
             <svg className={styles.callouts} aria-hidden="true">{groups.filter(group => group.label).map(group => {
               const { marker, label } = group;
               return <line key={marker.id} x1={marker.x} y1={marker.y} x2={marker.x + label!.x} y2={marker.y + label!.y} />;
             })}</svg>
             <div className={styles.markers}>
-              {!lowPoly ? towns.map(town => {
-                const at = point({ x: town.x, y: town.y }), size = town.size * TILE * view.zoom;
-                return <span key={town.ids.join(" ")} className={styles.townArt} aria-hidden="true"
-                  style={{ left: at.x - size / 2, top: at.y - size / 2, width: size, height: size, ...landmarkSprite(town.ids.length >= 5 ? "city" : "town") }} />;
-              }) : null}
               {groups.map(group => {
                 const location = data!.locations.find(entry => entry.id === group.marker.id)!;
                 const at = group.marker, Icon = PLACE_ICONS[inTown.has(location.id) ? "settlement" : locationKind(location)];
-                const asset = !lowPoly && detailed && group.members.length === 1 && !inTown.has(location.id) ? landmarkForLocation(location) : null;
                 const groupQuests = quests.filter(quest => group.members.some(member => member.id === quest.locationId));
                 const groupParty = group.members.reduce((sum, member) => sum + member.partyCount, 0);
                 const names = group.members.map(member => member.name).join(" · ");
@@ -609,9 +608,8 @@ export function OverworldPanel({
                     setSelected(location.id);
                     if (group.members.length > 1) { setFollowParty(false); zoomBy(Math.max(1.7, 0.9 / view.zoom)); focus((location.anchor!.x + 0.5) * TILE, (location.anchor!.y + 0.5) * TILE); setSection("places"); setSearch(""); }
                   }}>
-                  <span className={cn(styles.placeBadge, asset && styles.illustrated)}>
-                    {asset ? <span className={styles.landmarkArt} style={landmarkSprite(asset)} aria-hidden="true" /> : null}
-                    <Icon size={asset ? 12 : 20} strokeWidth={1.5} />
+                  <span className={styles.placeBadge}>
+                    <Icon size={20} strokeWidth={1.5} />
                   </span>
                   {group.members.length > 1 ? <span className={styles.clusterCount}>+{group.members.length - 1}</span> : null}
                   {groupParty && (!detailed || group.members.length > 1) ? <span className={styles.partyCount}><Users size={12} />{groupParty}</span> : null}
