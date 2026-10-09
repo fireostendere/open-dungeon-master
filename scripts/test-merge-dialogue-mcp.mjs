@@ -272,6 +272,14 @@ for(const [locale,labels]of [['ru',['Действие','Действие','Вн�
   }
 });
 
+test('OOC table talk (seq 0) lands by time between story messages, not above the history',()=>{
+  const f=uiFixture('ru');const at=m=>`2026-10-09T10:0${m}:00.000Z`;
+  const messages=[{id:'s1',seq:1,authorType:'dm',content:'One',createdAt:at(1)},{id:'s2',seq:2,authorType:'dm',content:'Two',createdAt:at(3)},
+    {id:'o1',seq:0,authorType:'player',userId:'alice',content:'(ooc) brb',createdAt:at(2)},{id:'o2',seq:0,authorType:'dm',content:'(ooc) pizza',createdAt:at(4)}];
+  const items=walk(f.list.MessageList({messages,campaignId:A,rolls:[],sheets:[],dmStatus:'idle',dmDraft:'',onRenarrate(){}}),n=>typeof n.type==='function'&&n.type.name==='MessageItem');
+  assert.deepEqual(items.map(n=>n.props.message.id),['s1','o1','s2','o2']);
+});
+
 test('merge preserves blocked/own-message reporting and halted-turn/DM rendering branches',()=>{
   const f=uiFixture('ru');const playerMessage={id:'p',userId:'alice',authorType:'player',content:'Secret'};
   const blocked=f.row(playerMessage,{blockedUserIds:['alice']});assert.ok(!text(blocked).includes('Secret'));assert.equal(walk(blocked,n=>n.type===f.style.PlayerMessageBody).length,0);

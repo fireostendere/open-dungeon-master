@@ -167,15 +167,20 @@ function compareStoryTimelineItems(left: StoryTimelineItem, right: StoryTimeline
 function buildTimeline(messages: CampaignMessage[], rolls: StoredRoll[], asks: CampaignAsk[]): TimelineItem[] {
   const marked = referencedRollIds(messages);
   const storyTimeline: StoryTimelineItem[] = [
-    ...messages.map((message) => ({ kind: "message" as const, message, time: parsedTime(message.createdAt) })),
+    ...messages.filter((message) => message.seq > 0).map((message) => ({ kind: "message" as const, message, time: parsedTime(message.createdAt) })),
     ...rolls
       .filter((roll) => !marked.has(roll.id))
       .map((roll) => ({ kind: "roll" as const, roll, time: parsedTime(roll.createdAt) })),
   ];
   const timeline: TimelineItem[] = storyTimeline.sort(compareStoryTimelineItems);
-  // ponytail: insert at most 100 visible asks into the existing ordered feed; use an indexed merge if this cap grows.
-  for (const ask of [...asks].sort((left, right) => parsedTime(left.answeredAt ?? left.createdAt) - parsedTime(right.answeredAt ?? right.createdAt))) {
-    const item = { kind: "ask" as const, ask, time: parsedTime(ask.answeredAt ?? ask.createdAt) };
+  // Asks and table talk (OOC is never sequenced, seq 0) slot in by time;
+  // sorted by seq they would sink above the whole history.
+  const loose: TimelineItem[] = [
+    ...messages.filter((message) => !(message.seq > 0)).map((message) => ({ kind: "message" as const, message, time: parsedTime(message.createdAt) })),
+    ...asks.map((ask) => ({ kind: "ask" as const, ask, time: parsedTime(ask.answeredAt ?? ask.createdAt) })),
+  ];
+  // ponytail: insert at most 100 visible asks + 200 OOC lines into the existing ordered feed; use an indexed merge if these caps grow.
+  for (const item of loose.sort((left, right) => left.time - right.time)) {
     const index = timeline.findIndex((entry) => entry.time > item.time);
     timeline.splice(index < 0 ? timeline.length : index, 0, item);
   }
@@ -750,7 +755,7 @@ export function MessageList({
   const closingDmMessageId = useMemo(() => {
     if (campaignStatus !== "ended") return "";
     for (let index = messages.length - 1; index >= 0; index -= 1) {
-      if (messages[index].authorType === "dm") {
+      if (messages[index].authorType === "dm" && messages[index].seq > 0) {
         return messages[index].id;
       }
     }
@@ -834,7 +839,7 @@ export function MessageList({
   // rule, this just keeps the button off every older passage.
   const latestDmMessageId = useMemo(() => {
     for (let index = messages.length - 1; index >= 0; index -= 1) {
-      if (messages[index].authorType === "dm") {
+      if (messages[index].authorType === "dm" && messages[index].seq > 0) {
         return messages[index].id;
       }
     }
