@@ -7,7 +7,7 @@ import { activeQuestLines } from "@/lib/dm/arc-logic";
 import { spatialContext, spatialEnabled, spatialStore } from "@/lib/spatial/service";
 import { SpatialError, type SpatialRoom } from "@/lib/spatial/store.mjs";
 import type { AtlasCharacter, AtlasLocation } from "@/lib/overworld/atlas";
-import { atlasTerrain } from "@/lib/overworld/cartography";
+import { atlasTerrain, urbanPlace } from "@/lib/overworld/cartography";
 import {
   DEFAULT_OVERWORLD_PARAMS,
   OVERWORLD_HEIGHT,
@@ -222,10 +222,13 @@ function reconcileAnchors(map: OverworldMap, locations: CampaignLocation[]): Ove
       continue;
     }
     let connected: XY | null = null;
+    let connectedInTown = false;
     for (const connectionName of location.connections) {
       const connectedId = idByName.get(connectionName.toLowerCase());
       if (connectedId && anchorsByLocationId[connectedId]) {
         connected = anchorsByLocationId[connectedId];
+        const from = locations.find((entry) => entry.id === connectedId);
+        connectedInTown = Boolean(from && urbanPlace(from));
         break;
       }
     }
@@ -235,6 +238,7 @@ function reconcileAnchors(map: OverworldMap, locations: CampaignLocation[]): Ove
       height: map.height,
       existing: Object.values(anchorsByLocationId),
       connected,
+      connectedInTown,
       name: location.name,
       layoutDescription: location.layoutDescription,
     });

@@ -3,7 +3,7 @@
 // and deterministic anchor placement for locations. No DB access and no
 // "@/" imports so scripts/test-overworld-generate.mjs can load it directly;
 // the impure rim is src/lib/db/overworld.ts.
-import { environmentForLocation } from "./cartography.ts";
+import { environmentForLocation, urbanPlace } from "./cartography.ts";
 
 // Sized for long campaigns: anchors hop 4-7 tiles apart, so this grid
 // comfortably holds a couple hundred discovered locations before crowding.
@@ -254,14 +254,20 @@ export function placeAnchor(input: {
   connected: XY | null;
   name: string;
   layoutDescription?: string;
+  // The connected place is in a town: an untyped place beside it is too.
+  connectedInTown?: boolean;
 }): XY {
   const { terrain, width, height, existing, connected, name } = input;
   const hash = fnv1a(name.toLowerCase());
   const rng = mulberry32(hash);
+  const environment = environmentForLocation(input);
+  // Streets, squares and inns of one settlement stand next to each other,
+  // whatever biome is under them: the atlas draws the town's ground.
+  const inTown = urbanPlace(input) || Boolean(input.connectedInTown && !environment);
   let start: XY;
   if (connected) {
     const angle = rng() * Math.PI * 2;
-    const distance = 4 + rng() * 3;
+    const distance = inTown ? 2 + rng() : 4 + rng() * 3;
     start = {
       x: Math.round(connected.x + Math.cos(angle) * distance),
       y: Math.round(connected.y + Math.sin(angle) * distance),
@@ -282,7 +288,6 @@ export function placeAnchor(input: {
   });
   const taken = (point: XY) =>
     existing.some((anchor) => Math.abs(anchor.x - point.x) <= 1 && Math.abs(anchor.y - point.y) <= 1);
-  const environment = environmentForLocation(input);
   const preferred = (point: XY) => {
     if (taken(point)) return false;
     const tile = tileAt(terrain, width, point.x, point.y);
@@ -295,7 +300,8 @@ export function placeAnchor(input: {
   // Prefer the real biome, then free dry ground, then any free cell on an
   // imported all-water/all-mountain map. Never pile new places on a taken
   // anchor merely because their required biome is absent.
-  for (const usable of [preferred, (point: XY) => !taken(point) && !UNANCHORABLE.has(tileAt(terrain, width, point.x, point.y)), (point: XY) => !taken(point)]) {
+  const dryFree = (point: XY) => !taken(point) && !UNANCHORABLE.has(tileAt(terrain, width, point.x, point.y));
+  for (const usable of inTown ? [dryFree, (point: XY) => !taken(point)] : [preferred, dryFree, (point: XY) => !taken(point)]) {
     let candidate = clamp(start);
     if (usable(candidate)) return candidate;
     // Outward ring search; radius is bounded by the map.

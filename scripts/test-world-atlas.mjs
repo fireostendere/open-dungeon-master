@@ -18,7 +18,7 @@ const { createSheetSchema } = await import("../src/lib/schemas/sheet.ts");
 const { upsertCurrentLocation, insertKnownLocation } = await import("../src/lib/db/locations.ts");
 const { getOverworld, overworldView, regenerateOverworld, setOverworldAnchor, setOverworldPins, setOverworldNotes, setOverworldLabels } = await import("../src/lib/db/overworld.ts");
 const { atlasQuests, atlasRoute, questId, locationKind, constrainAtlasView, layoutAtlasMarkers } = await import("../src/lib/overworld/atlas.ts");
-const { atlasTerrain, environmentForLocation, landmarkForLocation, landmarkSprite, LANDMARK_ASSETS, LANDMARK_NAMES, TERRAIN_NAMES, TERRAIN_ASSETS, materialAt } = await import("../src/lib/overworld/cartography.ts");
+const { atlasTerrain, atlasTowns, environmentForLocation, landmarkForLocation, landmarkSprite, urbanPlace, LANDMARK_ASSETS, LANDMARK_NAMES, TERRAIN_NAMES, TERRAIN_ASSETS, materialAt } = await import("../src/lib/overworld/cartography.ts");
 const { placeAnchor } = await import("../src/lib/overworld/logic.ts");
 const { runSpatialCommand, spatialContext, spatialStore } = await import("../src/lib/spatial/service.ts");
 const { executeMcpNarratorControl } = await import("../src/lib/mcp-narrator-control.ts");
@@ -73,6 +73,45 @@ try {
   assert.equal(portAnchor.x, 4, "new harbours choose a real shoreline before adding terrain");
   const unavailable = placeAnchor({ ...ground, name: "Порт", connected: null, existing: [{ x: 26, y: 16 }, { x: 20, y: 16 }] });
   assert.ok(![{ x: 26, y: 16 }, { x: 20, y: 16 }].some(at => Math.abs(at.x - unavailable.x) <= 1 && Math.abs(at.y - unavailable.y) <= 1), "missing biomes cannot place a new site on an occupied anchor");
+  // Places in town: streets, squares, inns and homes stand on one town
+  // footprint with the town miniature, never on the region's forest.
+  for (const [name, layoutDescription] of [["Улица Медников, дом 7 — квартира Гризельды"], ["Главная площадь — Фей Парад"],
+    ["Шаловливый палец гремлина", "Таверна у главной площади, внутри шумно."], ["Rusty Anchor Tavern"], ["Market Square"]]) {
+    assert.equal(landmarkForLocation({ name, layoutDescription }), "town", name);
+    assert.equal(urbanPlace({ name, layoutDescription }), true, name);
+    assert.deepEqual(environmentForLocation({ name, layoutDescription }), { ground: "p", material: "plains", radius: 4 }, name);
+  }
+  assert.equal(environmentForLocation({ name: "Улица Медников", layoutDescription: "Улица петляет к лесу за стеной. Пахнет медью." }).material, "plains",
+    "a forest beyond the walls does not move a street into it");
+  assert.equal(landmarkForLocation({ name: "Смотровая площадка" }), null, "a lookout platform is not a town square");
+  assert.equal(landmarkForLocation({ name: "Восточный лес" }), null);
+  assert.equal(environmentForLocation({ name: "Восточный лес" }).material, "forest");
+  assert.equal(urbanPlace({ name: "Деревня у леса" }), false, "a whole settlement keeps its own miniature and spacing");
+  const woods = { seed: 9, width: 40, height: 32, terrain: "f".repeat(40 * 32) };
+  const town = atlasTerrain(woods, [
+    { id: "street", name: "Улица Медников, дом 7", anchor: { x: 10, y: 10 }, connections: ["Главная площадь"] },
+    { id: "square", name: "Главная площадь", anchor: { x: 10, y: 16 }, connections: ["Улица Медников, дом 7", "Шаловливый палец гремлина"] },
+    { id: "inn", name: "Шаловливый палец гремлина", anchor: { x: 15, y: 18 }, connections: [] },
+    { id: "glade", name: "Чёрная Падь", anchor: { x: 30, y: 10 }, connections: [] },
+  ]);
+  const townPlaces = [
+    { id: "street", name: "Улица Медников, дом 7", anchor: { x: 10, y: 10 }, connections: ["Главная площадь"] },
+    { id: "square", name: "Главная площадь", anchor: { x: 10, y: 16 }, connections: ["Улица Медников, дом 7", "Шаловливый палец гремлина"] },
+    { id: "inn", name: "Шаловливый палец гремлина", anchor: { x: 15, y: 18 }, connections: [] },
+    { id: "glade", name: "Чёрная Падь", anchor: { x: 30, y: 10 }, connections: [] },
+    { id: "far", name: "Рыночная площадь Дальнего Брода", anchor: { x: 34, y: 28 }, connections: [] },
+  ];
+  assert.deepEqual(atlasTowns(townPlaces), [{ ids: ["inn", "square", "street"], x: 35 / 3, y: 44 / 3, size: 13 }],
+    "one settlement miniature under the streets, square and inn; a lone square elsewhere keeps its own pin art");
+  const woodsTile = (x, y) => town.terrain[y * woods.width + x];
+  for (const [x, y] of [[10, 10], [10, 13], [10, 16], [12, 17], [15, 18]]) assert.equal(woodsTile(x, y), "p", `town ground at ${x},${y}`);
+  assert.equal(woodsTile(30, 10), "f", "an untyped place away from town keeps the forest");
+  assert.equal(woodsTile(20, 25), "f");
+  const townAnchors = [{ x: 10, y: 10 }, { x: 10, y: 16 }, { x: 15, y: 18 }];
+  const nextDoor = placeAnchor({ ...woods, name: "Переулок Слепого Кота", connected: { x: 10, y: 16 }, existing: townAnchors });
+  assert.ok(Math.max(Math.abs(nextDoor.x - 10), Math.abs(nextDoor.y - 16)) <= 3, "a new street stands beside its square, not out in the forest");
+  const besideTown = placeAnchor({ ...woods, name: "Дом вдовы Кравец", connected: { x: 10, y: 16 }, connectedInTown: true, existing: townAnchors });
+  assert.ok(Math.max(Math.abs(besideTown.x - 10), Math.abs(besideTown.y - 16)) <= 3, "an untyped place off the square is in town too");
   for (const viewport of [{ width: 350, height: 420 }, { width: 950, height: 680 }]) {
     const map = { width: 1536, height: 1152 };
     const limited = constrainAtlasView({ x: 1e6, y: -1e6, zoom: 0.0001 }, viewport, map);
