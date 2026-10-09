@@ -326,6 +326,11 @@ body::before {
     -webkit-backdrop-filter: blur(10px);
   }
 
+  /* The .glass tint over a solid base, for docks that scrolling content slides under. */
+  .glass-solid {
+    background: linear-gradient(180deg, rgba(33, 27, 58, 0.55), rgba(21, 18, 41, 0.65)), var(--color-stone-950);
+  }
+
   /* Raised panel: gradient surface, top-edge light, layered depth shadow.
      The workhorse card treatment; nothing on the app should read as flat. */
   .panel {
