@@ -45,6 +45,12 @@ export const TERRAIN_NAMES: Record<TerrainMaterial, [string, string]> = {
 };
 type Place = { name: string; layoutDescription?: string };
 
+// Places inside a settlement: its streets, squares, markets, inns, shops,
+// workshops and homes. They show the town's miniature and stand on its
+// ground, never on the wild region's forest. "площадь", not "площадка";
+// no bare "дом", which also names a forester's hut.
+const URBAN = /улиц|переул|проспект|бульвар|площад(?!к)|квартал|слобод|предмест|рын(?:ок|к)|рыночн|базар|ярмарк|лавк|магазин|мастерск|кузниц|таверн|трактир|корчм|кабак|харчевн|постоял|гостиниц|пивн|квартир|особняк|ратуш|казарм|гильди|склад|набережн|городск|канализац|трущоб|\b(?:street|alley|avenue|boulevard|square|plaza|market|bazaar|district|quarter|ward|tavern|inn|pub|alehouse|shop|store|emporium|workshop|smithy|guild(?:hall)?|warehouse|town hall|city hall|barracks|sewers?|slums|apartment|townhouse|mansion)\b/iu;
+
 // Specific names win over generic types. An incidental forest in a town's
 // description must not change its symbol. Unknown names keep a neutral pin.
 const LANDMARK_RULES: Array<[LandmarkAsset, RegExp]> = [
@@ -59,18 +65,28 @@ const LANDMARK_RULES: Array<[LandmarkAsset, RegExp]> = [
   ["ruins", /руин|ruins?/iu], ["castle", /замок|крепост|цитадел|\b(?:castle|fort|fortress|keep|citadel)\b/iu],
   ["watchtower", /башн|tower/iu], ["monastery", /монастыр|monastery|abbey/iu], ["shrine", /святилищ|shrine/iu],
   ["temple", /храм|temple/iu], ["camp", /лагер|стоянк|\bcamp\b/iu], ["village", /деревн|село(?:\s|$)|village|hamlet/iu],
-  ["town", /городок|пос[её]лок|\btown\b/iu], ["city", /город|\bcity\b/iu],
+  ["town", /городок|пос[её]лок|\btown\b/iu], ["city", /город|\bcity\b/iu], ["town", URBAN],
 ];
 
-export function landmarkForLocation(place: Place): LandmarkAsset | null {
+function landmarkRule(place: Place): [LandmarkAsset, RegExp] | null {
   const explicit = place.layoutDescription?.match(/^(?:Тип места|Place type):\s*([^.!?]+)/iu)?.[1];
-  if (explicit) return LANDMARK_RULES.find(([, rule]) => rule.test(explicit))?.[0] ?? null;
+  if (explicit) return LANDMARK_RULES.find(([, rule]) => rule.test(explicit)) ?? null;
   const named = LANDMARK_RULES.find(([, rule]) => rule.test(place.name));
-  if (named) return named[0];
+  if (named) return named;
   const opening = (place.layoutDescription ?? "").split(/[.!?;,]|\s(?:у|возле|около|beside|near|by)\s/iu)[0].trim();
   // Only an explicit leading type identifies a place with a proper name.
   const leading = opening.replace(/^(?:это\s+|an?\s+|the\s+)/iu, "").split(/\s+/).slice(0, 3).join(" ");
-  return LANDMARK_RULES.find(([, rule]) => rule.test(leading))?.[0] ?? null;
+  return LANDMARK_RULES.find(([, rule]) => rule.test(leading)) ?? null;
+}
+
+export function landmarkForLocation(place: Place): LandmarkAsset | null {
+  return landmarkRule(place)?.[0] ?? null;
+}
+
+// A street, square, inn or home inside a settlement (not the settlement as a
+// whole): it clusters with its neighbours and shares one town footprint.
+export function urbanPlace(place: Place): boolean {
+  return landmarkRule(place)?.[1] === URBAN;
 }
 
 export type PlaceEnvironment = { ground: OverworldTile; material: TerrainMaterial; radius: number; water?: "coast" | "lake" | "river" | "ice" | "lava" };
@@ -97,13 +113,20 @@ const ENVIRONMENT_RULES: Array<[RegExp, PlaceEnvironment]> = [
   [/долин|равнин|луг|valley|plains?|meadow/iu, { ground: "p", material: "plains", radius: 5 }],
 ];
 
+// The ground of a place in town; wide enough that neighbouring streets and
+// inns merge into one settlement instead of clearings in a forest.
+const TOWN_GROUND: PlaceEnvironment = { ground: "p", material: "plains", radius: 4 };
+
 export function environmentForLocation(place: Place): PlaceEnvironment | null {
   const landmark = landmarkForLocation(place);
+  const urban = urbanPlace(place);
   const nameRule = ENVIRONMENT_RULES.find(([rule]) => rule.test(place.name));
   const leading = (place.layoutDescription ?? "").split(/[.!?;]/u).slice(0, 2).join(". ");
   const specified = place.layoutDescription?.match(/(?:^|[.!?])\s*(?:Окружение|Environment):\s*([^.!?]+)/iu)?.[1];
+  // A street's description that mentions the forest beyond the walls does
+  // not move the street into it: in town only a stated environment counts.
   const explicit = (specified ? ENVIRONMENT_RULES.find(([rule]) => rule.test(specified))?.[1] : undefined)
-    ?? nameRule?.[1] ?? ENVIRONMENT_RULES.find(([rule]) => rule.test(leading))?.[1];
+    ?? nameRule?.[1] ?? (urban ? undefined : ENVIRONMENT_RULES.find(([rule]) => rule.test(leading))?.[1]);
   if (landmark === "port" || landmark === "bridge" || landmark === "waterfall") {
     const material = !explicit || ["water", "ice", "shallows"].includes(explicit.material) ? "plains" : explicit.material === "lava" ? "volcanic" : explicit.material;
     return { ground: landmark === "waterfall" ? "h" : "p", material, radius: 4,
@@ -118,6 +141,7 @@ export function environmentForLocation(place: Place): PlaceEnvironment | null {
     return explicit;
   }
   if (!landmark || landmark === "portal") return null;
+  if (urban) return TOWN_GROUND;
   if (["cave", "mine", "dwarvenHold"].includes(landmark)) return { ground: "h", material: "hills", radius: 3 };
   if (["castle", "ruinedCastle", "watchtower", "wizardTower"].includes(landmark)) return { ground: "h", material: "hills", radius: 3 };
   return { ground: "p", material: "plains", radius: 2.5 };
@@ -130,17 +154,60 @@ export function landmarkSprite(asset: LandmarkAsset) {
   return { backgroundImage: `url('${LANDMARK_SHEETS[sheet]}')`, backgroundSize: "400% 300%", backgroundPosition: `${cell % 4 / 3 * 100}% ${Math.floor(cell / 4) / 2 * 100}%` };
 }
 
+// The terrain each place asks for. A place with no type of its own that
+// connects straight to a place in town (an inn named for its owner, off the
+// main square) stands in that town too. One hop only, so a road out of town
+// keeps the region's own ground; it takes the ground, never the miniature.
+export function placeEnvironments(places: Array<Place & { id: string; connections?: string[] }>): Map<string, PlaceEnvironment | null> {
+  const key = (name: string) => name.trim().toLowerCase();
+  const town = places.filter(urbanPlace);
+  const townNames = new Set(town.map((place) => key(place.name)));
+  const linkedFromTown = new Set(town.flatMap((place) => (place.connections ?? []).map(key)));
+  return new Map(places.map((place) => {
+    const own = environmentForLocation(place);
+    if (own || landmarkForLocation(place)) return [place.id, own];
+    const beside = linkedFromTown.has(key(place.name)) || (place.connections ?? []).some((name) => townNames.has(key(name)));
+    return [place.id, beside ? TOWN_GROUND : null];
+  }));
+}
+
+// Places in town that stand near each other are one settlement on the map:
+// each group of two or more (every member within reach of another) gets one
+// large miniature under its pins, centred on the group and sized to cover it.
+export function atlasTowns(places: Array<Place & { id: string; anchor: XY | null; connections?: string[] }>): Array<{ ids: string[]; x: number; y: number; size: number }> {
+  const environments = placeEnvironments(places);
+  const town = places.filter((place): place is typeof place & { anchor: XY } => Boolean(place.anchor) && environments.get(place.id) === TOWN_GROUND);
+  const groups: Array<typeof town> = [];
+  for (const place of town) {
+    const joined = groups.filter((group) => group.some((other) => Math.hypot(other.anchor.x - place.anchor.x, other.anchor.y - place.anchor.y) <= 8));
+    const merged = [place, ...joined.flat()];
+    for (const group of joined) groups.splice(groups.indexOf(group), 1);
+    groups.push(merged);
+  }
+  return groups.filter((group) => group.length > 1).map((group) => {
+    const xs = group.map((place) => place.anchor.x), ys = group.map((place) => place.anchor.y);
+    const extent = Math.max(Math.max(...xs) - Math.min(...xs), Math.max(...ys) - Math.min(...ys));
+    return {
+      ids: group.map((place) => place.id).sort(),
+      x: xs.reduce((sum, x) => sum + x, 0) / group.length,
+      y: ys.reduce((sum, y) => sum + y, 0) / group.length,
+      size: Math.min(16, Math.max(7, extent + 5)),
+    };
+  });
+}
+
 // A scoped, deterministic cartographic projection, not a rules-engine
 // mutation. Rebuild only from locations this viewer is allowed to know.
 // Stored anchors never move when a party/quest changes or a place is added.
-export function atlasTerrain(map: { seed: number; width: number; height: number; terrain: string }, places: Array<Place & { id: string; anchor: XY | null }>) {
+export function atlasTerrain(map: { seed: number; width: number; height: number; terrain: string }, places: Array<Place & { id: string; anchor: XY | null; connections?: string[] }>) {
   const tiles = map.terrain.split("");
   const materials = tiles.map(tile => BIOME_MATERIALS[tile as OverworldTile] ?? "water");
   const distance = new Float64Array(tiles.length).fill(Infinity);
   const protectedCells = new Map(places.filter(place => place.anchor).map(place => [place.anchor!.y * map.width + place.anchor!.x, place.id]));
   const conflicts: string[] = [];
+  const environments = placeEnvironments(places);
   for (const place of [...places].sort((a, b) => a.id.localeCompare(b.id))) {
-    const env = environmentForLocation(place), at = place.anchor;
+    const env = environments.get(place.id), at = place.anchor;
     if (!env || !at) continue;
     let shore = { x: 1, y: 0 }, nearest = Infinity;
     if (env.water === "coast") {
@@ -185,13 +252,13 @@ export function atlasTerrain(map: { seed: number; width: number; height: number;
     }
   }
   for (const place of places) {
-    const env = environmentForLocation(place), at = place.anchor;
+    const env = environments.get(place.id), at = place.anchor;
     if (!env || !at) continue;
     const neighbours = [-1, 0, 1].flatMap(dy => [-1, 0, 1].map(dx => ({ x: at.x + dx, y: at.y + dy })))
       .filter(p => p.x >= 0 && p.x < map.width && p.y >= 0 && p.y < map.height);
     if (env.water === "coast" && !neighbours.some(p => tiles[p.y * map.width + p.x] === "w")) conflicts.push(place.id);
     if (places.some(other => other.id !== place.id && other.anchor?.x === at.x && other.anchor?.y === at.y &&
-      environmentForLocation(other)?.material !== env.material)) conflicts.push(place.id);
+      environments.get(other.id)?.material !== env.material)) conflicts.push(place.id);
   }
   return { terrain: tiles.join(""), materialGrid: materials.map(material => String.fromCharCode(97 + MATERIAL_NAMES.indexOf(material))).join(""), conflicts: [...new Set(conflicts)] };
 }

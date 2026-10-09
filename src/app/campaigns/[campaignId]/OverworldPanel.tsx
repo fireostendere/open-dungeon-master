@@ -40,7 +40,7 @@ import { useOverworldView } from "@/app/campaigns/[campaignId]/useOverworldView"
 import { useI18n } from "@/lib/i18n/context";
 import { localeText } from "@/lib/i18n/locale-text";
 import { atlasQuests, atlasRoute, isQuestPin, layoutAtlasMarkers, locationKind } from "@/lib/overworld/atlas";
-import { atlasTerrain, landmarkForLocation, landmarkSprite, materialAt, type TerrainMaterial } from "@/lib/overworld/cartography";
+import { atlasTerrain, atlasTowns, landmarkForLocation, landmarkSprite, materialAt, type TerrainMaterial } from "@/lib/overworld/cartography";
 import { cachedRelief, loadAtlasMaterials, slowMapConnection, storeRelief } from "@/lib/overworld/loading";
 import styles from "./worldAtlas.module.css";
 
@@ -522,6 +522,10 @@ export function OverworldPanel({
       priority: location.isCurrent ? 1000 : partyCount ? 800 : activeQuest?.locationId === location.id ? 600 : chosen?.id === location.id ? 550 : location.visited ? 200 : 100 };
   }), canvasSize.width, canvasSize.height, detailed, labelBounds);
   const partyLocation = current ?? data?.locations.find(location => location.id === originId);
+  // One miniature per settlement under its streets, squares and inns; their
+  // own pins then carry a plain house icon instead of a second miniature.
+  const towns = useMemo(() => data ? atlasTowns(data.locations) : [], [data]);
+  const inTown = useMemo(() => new Set(towns.flatMap(town => town.ids)), [towns]);
 
   function showParty() {
     setFollowParty(true);
@@ -584,10 +588,15 @@ export function OverworldPanel({
               return <line key={marker.id} x1={marker.x} y1={marker.y} x2={marker.x + label!.x} y2={marker.y + label!.y} />;
             })}</svg>
             <div className={styles.markers}>
+              {!lowPoly ? towns.map(town => {
+                const at = point({ x: town.x, y: town.y }), size = town.size * TILE * view.zoom;
+                return <span key={town.ids.join(" ")} className={styles.townArt} aria-hidden="true"
+                  style={{ left: at.x - size / 2, top: at.y - size / 2, width: size, height: size, ...landmarkSprite(town.ids.length >= 5 ? "city" : "town") }} />;
+              }) : null}
               {groups.map(group => {
                 const location = data!.locations.find(entry => entry.id === group.marker.id)!;
-                const at = group.marker, Icon = PLACE_ICONS[locationKind(location)];
-                const asset = !lowPoly && detailed && group.members.length === 1 ? landmarkForLocation(location) : null;
+                const at = group.marker, Icon = PLACE_ICONS[inTown.has(location.id) ? "settlement" : locationKind(location)];
+                const asset = !lowPoly && detailed && group.members.length === 1 && !inTown.has(location.id) ? landmarkForLocation(location) : null;
                 const groupQuests = quests.filter(quest => group.members.some(member => member.id === quest.locationId));
                 const groupParty = group.members.reduce((sum, member) => sum + member.partyCount, 0);
                 const names = group.members.map(member => member.name).join(" · ");
@@ -675,7 +684,7 @@ export function OverworldPanel({
           {section === "places" ? <>
             <label className={styles.search}><Search size={15} /><input value={search} onChange={event => setSearch(event.target.value)} placeholder={copy.search} aria-label={copy.search} /></label>
             <div className={styles.entries}>{places.map(location => {
-              const Icon = PLACE_ICONS[locationKind(location)];
+              const Icon = PLACE_ICONS[inTown.has(location.id) ? "settlement" : locationKind(location)];
               return <button key={location.id} type="button" className={cn(styles.placeEntry, chosen?.id === location.id && styles.activeEntry)} onClick={() => showLocation(location.id)}><Icon size={20} strokeWidth={1.3} /><div><strong>{location.name}</strong><span>{location.isCurrent ? copy.here : location.visited ? copy.visited : copy.known}</span></div>{location.isCurrent ? <LocateFixed size={14} /> : null}</button>;
             })}</div>
           </> : section === "objectives" ? <div className={styles.entries}>

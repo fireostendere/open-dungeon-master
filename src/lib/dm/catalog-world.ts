@@ -37,7 +37,7 @@ export const WORLD_ADJUDICATIONS: CatalogEntry[] = [
     fields: [
       { name: "name", label: "Place", kind: "text", required: true },
       { name: "characterIds", label: "Who goes", kind: "characters", help: "Only these move; everyone else stays where they stand. Leave empty to move the whole party." },
-      { name: "layoutDescription", label: "Layout", kind: "longtext", help: "Rooms, exits, landmarks. This is what the map is drawn from." },
+      { name: "layoutDescription", label: "Layout", kind: "longtext", help: "Rooms, exits, landmarks. This is what the map is drawn from. Start a new place with «Тип места: …» (улица, площадь, таверна, пещера, лес…) so the world atlas draws a town or the wild around it." },
       { name: "connections", label: "Leads to", kind: "text", help: "Other place names, comma separated." },
       { name: "visionClear", label: "They can see it", kind: "boolean", default: true, help: "Off in darkness or fog: no map is drawn." },
     ],

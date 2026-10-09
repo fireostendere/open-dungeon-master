@@ -45,6 +45,7 @@
 .placeName small { margin-top: 4px; font: 8px/1.2 system-ui, sans-serif; letter-spacing: .1em; color: #bfe1be; text-transform: uppercase; }
 .illustrated { position: relative; width: 46px; height: 46px; background: #14231a66; border-color: #c7caa830; border-radius: 50%; }
 .landmarkArt { position: absolute; width: 50px; height: 50px; filter: drop-shadow(0 3px 3px #0009); }
+.townArt { position: absolute; pointer-events: none; filter: drop-shadow(0 8px 12px #000a); }
 .illustrated > svg { position: absolute; right: -4px; bottom: -3px; border-radius: 3px; background: #15251bee; padding: 1px; box-sizing: content-box; }
 .clusterCount { position: absolute; top: -3px; right: -5px; min-width: 22px; padding: 2px 4px; border: 1px solid #c6b06b; border-radius: 9px; color: #f3dfaf; background: #242b1d; font: 10px/1.1 system-ui, sans-serif; }
 .partyCount { position: absolute; top: 33px; display: flex; align-items: center; gap: 4px; border: 1px solid #a6cba7; border-radius: 9px; padding: 2px 7px; color: #ddf3de; background: #12362d; font: 9px/1 system-ui, sans-serif; }
